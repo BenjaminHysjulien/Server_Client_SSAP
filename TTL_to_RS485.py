@@ -11,6 +11,7 @@ from time import sleep
 from serial import Serial
 import csv
 from adafruit_ads1x15.analog_in import AnalogIn
+import RPi.GPIO as GPIO
 
 record_time = 3
 
@@ -42,6 +43,46 @@ chan2_0x49 = AnalogIn(adc1, ADS.P2);
 chan3_0x49 = AnalogIn(adc1, ADS.P3);
 #G
 
+##### Servo Setup #####
+#GPIO.setmode(GPIO.BOARD)
+GPIO.setmode(GPIO.BCM)
+servo1_pin = 12  # does not need to be PWM pin, the GPIO generates PWM signal
+servo2_pin = 13
+
+# Set servo pin as output for servo
+GPIO.setup(servo1_pin, GPIO.OUT)
+GPIO.setup(servo2_pin, GPIO.OUT)
+servo1 = GPIO.PWM(servo1_pin, 50)  # 50 = 50Hz pulse
+servo2 = GPIO.PWM(servo2_pin, 50)
+
+#start PWM run, but with value of 0 (pulse off)
+servo1.start(0)  # servo1 is male endcap
+servo2.start(0)  # servo2 is female endcap
+
+# define variable duty
+duty = 2  # 2 equals 0 degrees, 12 equals 180, linear inbetween
+
+
+def servoAng(servo, angDeg):
+    '''
+    Set angle of servo. Angles from 0 to 180 degrees.
+    '''
+    print("Move to angle " + str(angDeg))
+    angDeg = int(angDeg)
+    duty = float((angDeg / 180) * 10 + 2)  # range of 2 to 12 for 0 to 180 degrees (0 is servo off)
+    servo.ChangeDutyCycle(duty)
+    time.sleep(1.5)  # allow ample time to move servo
+    servo.ChangeDutyCycle(0)  # stops sending the pulse signals, preventing twitching 
+    
+
+def servoOff(servo):
+    '''
+    Disables / turns-off servo. Stops sending the pulse signals.
+    '''
+    print("Turning off servo...")
+    servo.ChangeDutyCycle(0)
+    servo.stop()
+
 
 while(True):
     with Serial('/dev/ttyS0', 115200) as s:
@@ -71,6 +112,19 @@ while(True):
                     #print("{:>5}\t{:>5.3f}".format(chan3_0x49.value, chan3_0x49.voltage))
                 print("Recording Data: Stop")
                 s.flush();
+                
+            elif (rx == b'svn'):  # servo anchor activated
+                print("Activating servo anchors.")
+                servoAng(servo1, 70)  # estimate angle to set anchor - will need physical testing
+                servoAng(servo2, 110)
+                # angles different becasue the endcaps are mirrored from each other, not exactly the same
+                
+            elif (rx == b'svf'):  # servo anchor deactivated
+                print("Deactivating servo anchors.")
+                servoAng(servo1, 180)  # angle for arm to be retracted inward
+                servoAng(servo2, 0)
+                
+                
     with Serial('/dev/ttyS0', 115200) as s2:
         while not q0.empty():
             if(flag == False):              
@@ -107,3 +161,8 @@ while(True):
                 s2.flush()
 
         s2.flush()
+
+
+servoOff(servo1)
+servoOff(servo2)
+GPIO.cleanup()
