@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import time
 import board
-import busio
+import busio   # also used for the max31855 temperature sensor
 import adafruit_ads1x15.ads1015 as ADS
 import queue
 import threading
@@ -12,6 +12,8 @@ from serial import Serial
 import csv
 from adafruit_ads1x15.analog_in import AnalogIn
 import RPi.GPIO as GPIO
+import digitalio  # for temperature circuit
+import adafruit_max31855  # for the temperature sensor circuit 
 
 record_time = 3
 
@@ -46,8 +48,8 @@ chan3_0x49 = AnalogIn(adc1, ADS.P3);
 ##### Servo Setup #####
 #GPIO.setmode(GPIO.BOARD)
 GPIO.setmode(GPIO.BCM)
-servo1_pin = 12  # does not need to be PWM pin, the GPIO generates PWM signal
-servo2_pin = 13
+servo1_pin = 37  # does not need to be PWM pin, the GPIO generates PWM signal
+servo2_pin = 38
 
 # Set servo pin as output for servo
 GPIO.setup(servo1_pin, GPIO.OUT)
@@ -61,6 +63,14 @@ servo2.start(0)  # servo2 is female endcap
 
 # define variable duty
 duty = 2  # 2 equals 0 degrees, 12 equals 180, linear inbetween
+
+# Setup for the max31855 temperature sensing circuit 
+spi = busio.SPI(board.SCK, MOSI=board.MOSI, MISO=board.MISO)
+cs = digitalio.DigitalInOut(board.D5)
+max31855 = adafruit_max31855.MAX31855(spi, cs)
+
+temp_offset = -2.7  # linearly adjust temperature offset (degree C) for circuit temperature conversion
+temp_flag = False   # when temperature reading command request recieved, set flag to true
 
 
 def servoAng(servo, angDeg):
@@ -113,16 +123,23 @@ while(True):
                 print("Recording Data: Stop")
                 s.flush();
                 
-            elif (rx == b'svn'):  # servo anchor activated
+            elif (rx == b'V'):  # servo anchor activated
                 print("Activating servo anchors.")
                 servoAng(servo1, 70)  # estimate angle to set anchor - will need physical testing
                 servoAng(servo2, 110)
                 # angles different becasue the endcaps are mirrored from each other, not exactly the same
                 
-            elif (rx == b'svf'):  # servo anchor deactivated
+            elif (rx == b'R'):  # servo anchor deactivated
                 print("Deactivating servo anchors.")
                 servoAng(servo1, 180)  # angle for arm to be retracted inward
                 servoAng(servo2, 0)
+                
+            elif (rx == b'T'):  # servo anchor deactivated
+                print("Getting temperature reading.")
+                tempC = max31855.temperature
+                tempC = tempC + temp_offset
+                tempF = tempC * 9 / 5 + 32
+                temp_flag = True
                 
                 
     with Serial('/dev/ttyS0', 115200) as s2:
@@ -161,7 +178,25 @@ while(True):
                 s2.flush()
 
         s2.flush()
-
+        
+        if(temp_flag):
+            RS485_direction.on()
+            delim = ','
+            
+            # prepare data to transmit 
+            value = tempC.get()
+            s2.write(value.encode())
+            s2.write(delim.encode())
+            sleep(0.002)
+            
+            # check if recieved "ready for tamperature data" signal
+            rx = s2.read(1)
+            if rx == b'C':
+                temp_flag = False
+                print("RX: {0}".format(rx))
+            s2.flush()
+            
+            
 
 servoOff(servo1)
 servoOff(servo2)
