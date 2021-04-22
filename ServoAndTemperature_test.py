@@ -9,8 +9,8 @@ import time
 ##### Servo Setup #####
 #GPIO.setmode(GPIO.BOARD)
 GPIO.setmode(GPIO.BCM)
-servo1_pin = 12  # does not need to be PWM pin, the GPIO generates PWM signal
-servo2_pin = 13
+servo1_pin = 26  # does not need to be PWM pin, the GPIO generates PWM signal
+servo2_pin = 20
 
 # Set servo pin as output for servo
 GPIO.setup(servo1_pin, GPIO.OUT)
@@ -61,11 +61,14 @@ while True:
         print("Exiting...")
         break
     elif userInput == "0":
-        servoAng(servo2, 0)      
+        servoAng(servo2, 0)
+        servoAng(servo1, 0)
     elif userInput == "90":
         servoAng(servo2, 90)
+        servoAng(servo1, 90)
     elif userInput == "180":
         servoAng(servo2, 180)
+        servoAng(servo1, 180)
     else:
         print("Command unknown.")
     print("Command entered: " + userInput)

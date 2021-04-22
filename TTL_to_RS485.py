@@ -48,8 +48,8 @@ chan3_0x49 = AnalogIn(adc1, ADS.P3);
 ##### Servo Setup #####
 #GPIO.setmode(GPIO.BOARD)
 GPIO.setmode(GPIO.BCM)
-servo1_pin = 37  # does not need to be PWM pin, the GPIO generates PWM signal
-servo2_pin = 38
+servo1_pin = 26  # does not need to be PWM pin, the GPIO generates PWM signal
+servo2_pin = 20
 
 # Set servo pin as output for servo
 GPIO.setup(servo1_pin, GPIO.OUT)
