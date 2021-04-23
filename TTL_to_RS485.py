@@ -29,6 +29,7 @@ q0 = queue.Queue()
 q1 = queue.Queue()
 q2 = queue.Queue()
 q3 = queue.Queue()
+qt = queue.Queue()
 
 #Set up i2c ports 
 i2c = busio.I2C(board.SCL, board.SDA) 
@@ -95,7 +96,7 @@ def servoOff(servo):
 
 
 while(True):
-    with Serial('/dev/ttyS0', 115200) as s:
+    with Serial('/dev/ttyS0', 9600) as s:
         # waits for a single character
             rx = s.read(1)
 
@@ -106,7 +107,7 @@ while(True):
                 print("Recording Data: Start")
                 t_stop = time.time()+record_time # How much time is being recorded
                 while time.time() < t_stop:
-                    q0.put("{:>5.3f}".format(chan0_0x49.voltage))
+                    #q0.put("{:>5.3f}".format(chan0_0x49.voltage))
                     #print("{:>5}\t{:>5.3f}".format(chan0_0x49.value, chan3_0x49.voltage))
                     
                     
@@ -150,10 +151,10 @@ while(True):
                 RS485_direction.on()
                 delim = ','
                 
-                value = q0.get()
-                s2.write(value.encode())
-                s2.write(delim.encode())
-                sleep(0.001)
+               # value = q0.get()
+               # s2.write(value.encode())
+               # s2.write(delim.encode())
+               # sleep(0.001)
                 value1 = q1.get()
                 s2.write(value1.encode())
                 s2.write(delim.encode())
@@ -182,18 +183,18 @@ while(True):
         if(temp_flag):
             RS485_direction.on()
             delim = ','
-            
-            # prepare data to transmit 
-            value = tempC.get()
-            s2.write(value.encode())
-            s2.write(delim.encode())
-            sleep(0.002)
+        
             
             # check if recieved "ready for tamperature data" signal
             rx = s2.read(1)
             if rx == b'C':
-                temp_flag = False
                 print("RX: {0}".format(rx))
+                            # prepare data to transmit 
+                value = qt.get()
+                s2.write(value.encode())
+                s2.write(delim.encode())
+                sleep(0.002)
+                temp_flag = False
             s2.flush()
             
             
