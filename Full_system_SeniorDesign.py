@@ -99,31 +99,21 @@ while(True):
     with Serial('/dev/ttyS0', 9600) as s:
         # waits for a single character
             rx = s.read(1)
-
-            # print the received character
-            
-    #        if (rx == b'A'): #Then a singal to start recording has been sent.
-    
-            while True:
+            if (rx == b'A'): #Then a singal to start recording has been sent.
              #   print("RX: {0}".format(rx))
                 print("Recording Data: Start")
                 t_stop = time.time()+record_time # How much time is being recorded
                 while time.time() < t_stop:
-                    q0.put("{:>5.3f}".format(chan0_0x49.voltage))
-                    print("{:>5}\t{:>5.3f}".format(chan0_0x49.value, chan0_0x49.voltage))
-                    
-                    
-                    q1.put("{:>5.3f}".format(chan1_0x49.voltage))
-                    print("{:>5}\t{:>5.3f}".format(chan1_0x49.value, chan1_0x49.voltage))
-                    
+                    q1.put("{:>5.3f}".format(chan1_0x49.voltage))                   
                     
                     q2.put("{:>5.3f}".format(chan2_0x49.voltage))
-                    print("{:>5}\t{:>5.3f}".format(chan2_0x49.value, chan2_0x49.voltage))                   
+
+                    q3.put("{:>5.3f}".format(chan3_0x49.voltage))
                     
                 print("Recording Data: Stop")
                 s.flush();
                 
-            if (rx == b'V'):  # servo anchor activated
+            if (rx == b'S'):  # servo anchor activated
                 print("Activating servo anchors.")
                 servoAng(servo1, 70)  # estimate angle to set anchor - will need physical testing
                 servoAng(servo2, 110)
@@ -136,36 +126,36 @@ while(True):
                 
             elif (rx == b'T'):  # servo anchor deactivated
                 print("Getting temperature reading.")
-                #while True:
-                #    print("testing")
-                tempC = max31855.temperature
-                tempC = tempC + temp_offset
-                tempF = tempC * 9 / 5 + 32
-                qt.put("{:>5.3f}".format(tempC))
-                temp_flag = True
+                for j in range(10):
+                    tempC = max31855.temperature
+                    tempC = tempC + temp_offset
+                    tempF = tempC * 9 / 5 + 32
+                    qt.put("{:>5.3f}".format(tempC))
+                    sleep(0.02)
+                    temp_flag = True
                 
                 
     with Serial('/dev/ttyS0', 9600) as s2:
-        while not q0.empty():
+        while not q1.empty():
             if(flag == False):              
                 #Unload buffer
                 
                 RS485_direction.on()
                 delim = ','
                 
-                value = q0.get()
+                value = q1.get()
                 s2.write(value.encode())
                 s2.write(delim.encode())
                 sleep(0.001)
-                value1 = q1.get()
+                value1 = q2.get()
                 s2.write(value1.encode())
                 s2.write(delim.encode())
                 sleep(0.001)
-                value2 = q2.get()
+                value2 = q3.get()
                 s2.write(value2.encode())
                 s2.write(delim.encode())
                 sleep(0.001)                
-                if(q0.empty()):
+                if(q1.empty()):
                     print("Serial Data Transmission from B is complete")
                     RS485_direction.off()
                     flag = True
@@ -177,22 +167,22 @@ while(True):
                 s2.flush()
 
         s2.flush()
-        
         if(temp_flag):
-            RS485_direction.on()
-            delim = ','
-            
-            # prepare data to transmit
-            
             # check if recieved "ready for tamperature data" signal
             rx = s2.read(1)
-            if rx == b'C':
-                value = qt.get()
-                s2.write(value.encode())
-                s2.write(delim.encode())
-                sleep(0.002)
-                temp_flag = False
+            if rx == b'B':
                 print("RX: {0}".format(rx))
+                for j in range(10):
+                    RS485_direction.on()
+                    delim = ','
+    
+                            # prepare data to transmit 
+                    value = qt.get()
+                    s2.write(value.encode())
+                    s2.write(delim.encode())
+                    sleep(0.02)
+                    temp_flag = False
+            RS485_direction.off()
             s2.flush()
             
             
