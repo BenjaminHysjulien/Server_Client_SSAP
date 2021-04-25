@@ -13,11 +13,21 @@ import csv
 from adafruit_ads1x15.analog_in import AnalogIn
 import RPi.GPIO as GPIO
 import digitalio  # for temperature circuit
-import adafruit_max31855  # for the temperature sensor circuit 
+import adafruit_max31855  # for the temperature sensor circuit
+from gpiozero import Button
 
 record_time = 3
 
 RS485_direction = OutputDevice(17)
+# address assign vrbls
+
+address = b'Z'
+sendAddress = OutputDevice(18)
+button = Button(27)
+sendAddress.on()
+total_rec = 20
+addressAssignTime = 5
+count = 0
 
 # enable reception mode. This bit controls the RS485 direction. "off" puts it in recieve mode. 
 RS485_direction.off() #Start with read onlly
@@ -72,6 +82,39 @@ max31855 = adafruit_max31855.MAX31855(spi, cs)
 
 temp_offset = -2.7  # linearly adjust temperature offset (degree C) for circuit temperature conversion
 temp_flag = False   # when temperature reading command request recieved, set flag to true
+def addressAssign():
+    count = 0
+    address = b'Z'
+    print ("myAddress was = " + address.decode("utf-8"))
+    t_stop = time.time()+total_rec # How much time is being recorded
+    while time.time() < t_stop:
+    #read in button
+        if button.is_pressed:
+            t_stop2 = time.time()+addressAssignTime # How much time is being recorded
+            while time.time() < t_stop2:
+                if button.is_pressed:
+                    count += 1
+                    print (count)
+                    sleep(.5)
+        count = count +1
+        for val in range(count):
+            sendAddress.on()
+            sleep(.75)
+            sendAddress.off()
+            sleep(.25)
+    if (count == 1):
+        address = b'A'
+    elif (count == 2):
+        address = b'B'
+    elif (count == 3):
+        address = b'C'
+    elif (count == 4):
+        address = b'D'
+    else:
+        address = b'X'
+    
+    print ("myAddress is now = " + address.decode("utf-8"))
+    return address
 
 
 def servoAng(servo, angDeg):
@@ -102,8 +145,10 @@ while(True):
             if (rx == b'A'): #Then a singal to start recording has been sent.
              #   print("RX: {0}".format(rx))
                 print("Recording Data: Start")
+                t_start = time.time()
                 t_stop = time.time()+record_time # How much time is being recorded
                 while time.time() < t_stop:
+                    t_start = time.time() 
                     q1.put("{:>5.3f}".format(chan1_0x49.voltage))                   
                     
                     q2.put("{:>5.3f}".format(chan2_0x49.voltage))
@@ -133,7 +178,9 @@ while(True):
                     qt.put("{:>5.3f}".format(tempC))
                     sleep(0.02)
                     temp_flag = True
-                
+            elif(rx == b'G'):
+                print("Calling address assignment")
+                address = addressAssign()
                 
     with Serial('/dev/ttyS0', 9600) as s2:
         while not q1.empty():
@@ -161,7 +208,7 @@ while(True):
                     flag = True
             else:
                 rx = s2.read(1)
-                if rx == b'B':
+                if rx == address:
                     flag = False
                     print("RX: {0}".format(rx))
                 s2.flush()
@@ -170,7 +217,7 @@ while(True):
         if(temp_flag):
             # check if recieved "ready for tamperature data" signal
             rx = s2.read(1)
-            if rx == b'B':
+            if rx == address:
                 print("RX: {0}".format(rx))
                 for j in range(10):
                     RS485_direction.on()
