@@ -23,8 +23,9 @@ RS485_direction = OutputDevice(17)
 
 address = b'Z'
 sendAddress = OutputDevice(18)
+sendAddress.off()
 button = Button(27)
-sendAddress.on()
+#sendAddress.on()
 total_rec = 20
 addressAssignTime = 5
 count = 0
@@ -82,26 +83,33 @@ max31855 = adafruit_max31855.MAX31855(spi, cs)
 
 temp_offset = -2.7  # linearly adjust temperature offset (degree C) for circuit temperature conversion
 temp_flag = False   # when temperature reading command request recieved, set flag to true
-def addressAssign():
+def addressAssign(myAddress):
     count = 0
-    address = b'Z'
+    address = myAddress
     print ("myAddress was = " + address.decode("utf-8"))
     t_stop = time.time()+total_rec # How much time is being recorded
+    print (count)
+    
+    
     while time.time() < t_stop:
     #read in button
         if button.is_pressed:
             t_stop2 = time.time()+addressAssignTime # How much time is being recorded
             while time.time() < t_stop2:
                 if button.is_pressed:
-                    count += 1
-                    print (count)
                     sleep(.5)
-        count = count +1
-        for val in range(count):
-            sendAddress.on()
-            sleep(.75)
-            sendAddress.off()
-            sleep(.25)
+                    count = count +1
+                    print (count)
+            print("the value of count is now ")
+            print(count)
+            temp = count
+            for val in range(temp):
+                print(temp)
+                sendAddress.on()
+                sleep(.75)
+                sendAddress.off()
+                sleep(.25)
+    print (count)
     if (count == 1):
         address = b'A'
     elif (count == 2):
@@ -180,7 +188,7 @@ while(True):
                     temp_flag = True
             elif(rx == b'G'):
                 print("Calling address assignment")
-                address = addressAssign()
+                address = addressAssign(address)
                 
     with Serial('/dev/ttyS0', 9600) as s2:
         while not q1.empty():
