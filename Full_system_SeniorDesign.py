@@ -16,7 +16,8 @@ import digitalio  # for temperature circuit
 import adafruit_max31855  # for the temperature sensor circuit
 from gpiozero import Button
 
-record_time = 3
+sleep(30)
+record_time =10 
 
 RS485_direction = OutputDevice(17)
 # address assign vrbls
@@ -147,7 +148,7 @@ def servoOff(servo):
 
 
 while(True):
-    with Serial('/dev/ttyS0', 9600) as s:
+    with Serial('/dev/serial0',115200) as s:
         # waits for a single character
             rx = s.read(1)
             if (rx == b'A'): #Then a singal to start recording has been sent.
@@ -190,7 +191,7 @@ while(True):
                 print("Calling address assignment")
                 address = addressAssign(address)
                 
-    with Serial('/dev/ttyS0', 9600) as s2:
+    with Serial('/dev/serial0', 115200) as s2:
         while not q1.empty():
             if(flag == False):              
                 #Unload buffer
