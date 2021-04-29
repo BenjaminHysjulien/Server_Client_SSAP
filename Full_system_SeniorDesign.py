@@ -23,9 +23,9 @@ RS485_direction = OutputDevice(17)
 # address assign vrbls
 
 address = b'Z'
-sendAddress = OutputDevice(18)
+sendAddress = OutputDevice(23)
 sendAddress.off()
-button = Button(27)
+button = Button(22)
 #sendAddress.on()
 total_rec = 20
 addressAssignTime = 5
