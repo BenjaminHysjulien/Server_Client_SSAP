@@ -119,6 +119,28 @@ def addressAssign(myAddress):
         address = b'C'
     elif (count == 4):
         address = b'D'
+    elif (count == 5):
+        address = b'E'
+    elif (count == 6):
+        address = b'F'
+    elif (count == 7):
+        address = b'H'
+    elif (count == 8):
+        address = b'J'
+    elif (count == 9):
+        address = b'K'
+    elif (count == 10):
+        address = b'L'
+    elif (count == 11):
+        address = b'Z'
+    elif (count == 15):
+        address = b'B'
+    elif (count == 16):
+        address = b'N'
+    elif (count == 17):
+        address = b'M'
+    elif (count == 18):
+        address = b'N'
     else:
         address = b'X'
     
